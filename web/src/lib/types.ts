@@ -109,7 +109,8 @@ export interface Op {
   table: TableName;
   action: 'insert' | 'update' | 'delete';
   match: Record<string, string>;
-  values?: Record<string, unknown>;
+  /** Vid insert kan flera rader skickas i ett anrop */
+  values?: Record<string, unknown> | Record<string, unknown>[];
 }
 
 export type SmartView = 'myday' | 'important' | 'planned' | 'assigned';

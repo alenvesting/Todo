@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useMatch } from 'react-router-dom';
 import { useTaskNav } from './nav';
+import { ImportPage } from './components/ImportPage';
 import { InviteAccept, InviteLogin } from './components/InvitePage';
 import { ListView } from './components/ListView';
 import { Login } from './components/Login';
@@ -69,6 +70,7 @@ export default function App() {
     <DataProvider key={user.id} user={user}>
       <Routes>
         <Route path="/invite/:token" element={<InviteAccept />} />
+        <Route path="/import" element={<ImportPage />} />
         <Route path="*" element={<Shell />} />
       </Routes>
       <Toasts />

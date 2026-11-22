@@ -166,6 +166,13 @@ export const MoveIcon = (p: P) => (
   </svg>
 );
 
+export const ImportIcon = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M12 3v12M7.5 10.5L12 15l4.5-4.5" />
+    <path d="M5 15v3.5A2.5 2.5 0 007.5 21h9a2.5 2.5 0 002.5-2.5V15" />
+  </svg>
+);
+
 export const MicrosoftLogo = () => (
   <svg width="18" height="18" viewBox="0 0 23 23" aria-hidden>
     <path fill="#f25022" d="M1 1h10v10H1z" />

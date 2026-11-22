@@ -70,7 +70,7 @@ export async function executeOp(op: Op): Promise<ExecResult> {
   if (op.action === 'insert') {
     q = c.from(op.table).insert(op.values ?? {});
   } else if (op.action === 'update') {
-    q = c.from(op.table).update(op.values ?? {}).match(op.match);
+    q = c.from(op.table).update((op.values as Record<string, unknown>) ?? {}).match(op.match);
   } else {
     q = c.from(op.table).delete().match(op.match);
   }

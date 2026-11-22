@@ -5,6 +5,7 @@ import { isoDate } from './lib/dates';
 import { demoSeed } from './lib/demo';
 import * as api from './lib/supabase';
 import { isDemo, supabase } from './lib/supabase';
+import type { ImportList } from './lib/msTodo';
 import { emptyState, type DataState, type Invitation, type List, type Op, type Step, type Task } from './lib/types';
 
 // ---------------------------------------------------------------------------
@@ -111,6 +112,7 @@ export interface Store {
   updateStep: (id: string, patch: Partial<Pick<Step, 'title' | 'completed'>>) => void;
   deleteStep: (id: string) => void;
 
+  importLists: (lists: ImportList[]) => { lists: number; tasks: number };
   createInvite: (listId: string, email: string | null) => Promise<Invitation>;
   revokeInvite: (id: string) => Promise<void>;
   acceptInvite: (token: string) => Promise<string>;
@@ -420,6 +422,51 @@ export function DataProvider({ user, children }: { user: AppUser; children: Reac
       },
       deleteStep(id: string) {
         enqueue({ table: 'steps', action: 'delete', match: { id } });
+      },
+
+      /** Skapar listor med uppgifter och delsteg (t.ex. från Microsoft To Do) i stora block */
+      importLists(lists: ImportList[]) {
+        const chunk = <T,>(arr: T[], n = 200) => Array.from({ length: Math.ceil(arr.length / n) }, (_, i) => arr.slice(i * n, i * n + n));
+        const ops: Omit<Op, 'id'>[] = [];
+        let taskCount = 0;
+        const stamp = now();
+        for (const l of lists) {
+          const listId = uuid();
+          ops.push({
+            table: 'lists',
+            action: 'insert',
+            match: { id: listId },
+            values: { id: listId, owner_id: userId, name: l.name.slice(0, 200) || 'Importerad lista', emoji: l.emoji, color: l.color, created_at: stamp },
+          });
+          const taskRows: Record<string, unknown>[] = [];
+          const stepRows: Record<string, unknown>[] = [];
+          l.tasks.forEach((t, i) => {
+            const id = uuid();
+            taskRows.push({
+              id,
+              list_id: listId,
+              title: t.title,
+              note: t.note,
+              completed: t.completed,
+              completed_at: t.completed ? t.completed_at ?? stamp : null,
+              important: t.important,
+              due_date: t.due_date,
+              recurrence: t.recurrence,
+              assigned_to: null,
+              position: i,
+              created_by: userId,
+              created_at: t.created_at ?? stamp,
+            });
+            t.steps.forEach((s, j) =>
+              stepRows.push({ id: uuid(), task_id: id, title: s.title, completed: s.completed, position: j, created_at: stamp }),
+            );
+          });
+          taskCount += taskRows.length;
+          for (const c of chunk(taskRows)) ops.push({ table: 'tasks', action: 'insert', match: {}, values: c });
+          for (const c of chunk(stepRows)) ops.push({ table: 'steps', action: 'insert', match: {}, values: c });
+        }
+        enqueue(...ops);
+        return { lists: lists.length, tasks: taskCount };
       },
 
       async createInvite(listId: string, email: string | null) {

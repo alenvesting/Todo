@@ -46,46 +46,48 @@ export function applyOp(state: DataState, op: Op, nowIso: string = new Date().to
   let next: DataState;
 
   if (op.action === 'insert') {
-    const row = { ...op.values } as Record<string, unknown>;
-    const k = rowKey(op.table, row);
-    const without = rows.filter((r) => rowKey(op.table, r) !== k);
-    next = { ...state, [key]: [...without, row] };
+    const inserted = (Array.isArray(op.values) ? op.values : [op.values ?? {}]).map((v) => ({ ...v }) as Record<string, unknown>);
+    const keys = new Set(inserted.map((r) => rowKey(op.table, r)));
+    next = { ...state, [key]: [...rows.filter((r) => !keys.has(rowKey(op.table, r))), ...inserted] };
 
-    if (op.table === 'lists') {
-      // Databasen gör skaparen till ägare via trigger
-      const list = row as unknown as List;
-      const mine = state.members.filter((m) => m.user_id === list.owner_id);
-      const member: Member = {
-        list_id: list.id,
-        user_id: list.owner_id,
-        role: 'owner',
-        position: mine.length ? Math.max(...mine.map((m) => m.position)) + 1 : 0,
-      };
-      next = { ...next, members: [...next.members.filter((m) => m.list_id !== list.id), member] };
-    }
-    if (op.table === 'tasks') {
-      const t = row as unknown as Task;
-      if (t.completed && !t.completed_at) t.completed_at = nowIso;
+    for (const row of inserted) {
+      if (op.table === 'lists') {
+        // Databasen gör skaparen till ägare via trigger
+        const list = row as unknown as List;
+        const mine = next.members.filter((m) => m.user_id === list.owner_id);
+        const member: Member = {
+          list_id: list.id,
+          user_id: list.owner_id,
+          role: 'owner',
+          position: mine.length ? Math.max(...mine.map((m) => m.position)) + 1 : 0,
+        };
+        next = { ...next, members: [...next.members.filter((m) => m.list_id !== list.id), member] };
+      }
+      if (op.table === 'tasks') {
+        const t = row as unknown as Task;
+        if (t.completed && !t.completed_at) t.completed_at = nowIso;
+      }
     }
     return next;
   }
 
   if (op.action === 'update') {
+    const values = (op.values ?? {}) as Record<string, unknown>;
     next = {
       ...state,
       [key]: rows.map((r) => {
         if (!matches(r, op.match)) return r;
-        const updated = { ...r, ...op.values };
-        if (op.table === 'tasks' && op.values && 'completed' in op.values) {
+        const updated = { ...r, ...values };
+        if (op.table === 'tasks' && 'completed' in values) {
           const was = (r as unknown as Task).completed;
-          const now = Boolean(op.values.completed);
+          const now = Boolean(values.completed);
           if (now && !was) updated.completed_at = nowIso;
           if (!now) updated.completed_at = null;
         }
         return updated;
       }),
     };
-    if (op.table === 'tasks' && op.values && 'list_id' in op.values) {
+    if (op.table === 'tasks' && 'list_id' in values) {
       // Flyttad uppgift: tilldelning rensas om personen inte är med i nya listan
       next = {
         ...next,

@@ -15,6 +15,7 @@ organisera och **dela med de du bjuder in**. Fungerar i webbläsaren och kan ins
 | **Realtid** | Bockar din partner av mjölken syns det direkt hos dig. |
 | **Offline** | Ändringar sparas i telefonen och skickas när nätet är tillbaka – praktiskt i butiker med dålig täckning. |
 | **App** | Installeras på hemskärmen (PWA) på iPhone och Android. Ljust och mörkt läge. Helt på svenska. |
+| **Import** | Hämta listor, uppgifter, delsteg, datum, upprepning, stjärnor och anteckningar från Microsoft To Do. |
 | **Säkerhet** | Row Level Security i databasen: man kan bara se och ändra listor man är medlem i (49 automatiska tester). |
 
 ## Testa direkt (demoläge, utan konto)
@@ -91,7 +92,28 @@ Callback-adressen som Microsoft/Google/Meta ska ha är alltid
 
 > Loggar samma person in med olika metoder som har **samma e-postadress** kopplar Supabase ihop dem till ett konto.
 
-### 4. Installera på telefonen
+### 4. Import från Microsoft To Do
+
+Använder samma Azure-appregistrering som Microsoft-inloggningen:
+
+1. I [Azure Portal](https://portal.azure.com) → din app → **Authentication** → *Add a platform* →
+   **Single-page application**. Lägg till omdirigerings-URI:erna `https://din-adress/import` och
+   `http://localhost:5173/import`.
+2. **API permissions** → *Add a permission* → *Microsoft Graph* → *Delegated* → **Tasks.Read**.
+   (Ingen administratör behövs för privata Microsoft-konton.)
+3. Sätt miljövariabeln `VITE_MS_CLIENT_ID` till appens *Application (client) ID* och deploya om.
+
+I appen: menyn (⋯) uppe till vänster → **Importera från Microsoft To Do**. Du loggar in hos Microsoft (valfritt
+konto – det behöver inte vara samma som du loggar in i Bocka med), väljer listor och klickar Importera.
+Importen läser bara – ingenting ändras i Microsoft To Do.
+
+Bra att veta:
+- Emojin i början av ett listnamn blir listans ikon, precis som i Microsoft To Do.
+- Slutförda uppgifter hoppas över som standard (kryssa i rutan för att ta med dem).
+- **Delade listor:** importera dem hos *en* av er och dela sedan listan i Bocka, annars blir det dubbletter.
+- *Min dag* och påminnelser följer inte med (de finns inte i Microsofts API respektive i Bocka ännu).
+
+### 5. Installera på telefonen
 
 - **iPhone:** öppna adressen i Safari → Dela-knappen → **Lägg till på hemskärmen**.
 - **Android:** öppna i Chrome → menyn → **Installera app**.
@@ -119,6 +141,7 @@ web/
   src/store.tsx              Datalager: offline-kö, realtid, cache
   src/lib/apply.ts           Optimistiska uppdateringar (testade)
   src/lib/supabase.ts        Allt som pratar med Supabase
+  src/lib/msTodo.ts          Import från Microsoft To Do (Graph API)
   src/components/            Gränssnittet
 ```
 
@@ -136,6 +159,5 @@ GitHub Actions kör allt automatiskt vid varje push (`.github/workflows/ci.yml`)
 
 - Påminnelser med push-notiser (Web Push stöds nu även på iPhone för installerade appar).
 - Dra-och-släpp för att sortera uppgifter och listor.
-- Import från Microsoft To Do innan den stängs.
 - Listgrupper (mappar) som i Microsoft To Do.
 - App i App Store / Google Play via Capacitor, om ni vill ha "riktiga" appar.

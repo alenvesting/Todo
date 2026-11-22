@@ -5,7 +5,8 @@ import { isShared, myLists, smartViews, tasksForSmartView } from '../lib/selecto
 import { isDemo } from '../lib/supabase';
 import type { SmartView } from '../lib/types';
 import { useAuth, useStore } from '../store';
-import { CalendarIcon, CloudIcon, CloudOffIcon, ListIcon, LogoutIcon, PlusIcon, StarIcon, SunIcon, UserIcon, UsersIcon } from './Icons';
+import { CalendarIcon, CloudIcon, CloudOffIcon, ListIcon, LogoutIcon, MoreIcon, PlusIcon, StarIcon, SunIcon, UserIcon, UsersIcon } from './Icons';
+import { ImportIcon } from './Icons';
 import { ListDialog } from './ListDialog';
 import { Avatar, colorOf, Menu } from './ui';
 
@@ -51,13 +52,14 @@ export function Sidebar() {
           <strong>{user.name}</strong>
           <span>{isDemo ? 'Demoläge – sparas bara här' : user.email}</span>
         </div>
-        {!isDemo && (
-          <Menu
-            label="Konto"
-            trigger={<LogoutIcon />}
-            items={[{ label: 'Logga ut', icon: <LogoutIcon size={18} />, onClick: () => void signOut() }]}
-          />
-        )}
+        <Menu
+          label="Meny"
+          trigger={<MoreIcon />}
+          items={[
+            { label: 'Importera från Microsoft To Do', icon: <ImportIcon size={18} />, onClick: () => navigate('/import') },
+            ...(isDemo ? [] : [{ label: 'Logga ut', icon: <LogoutIcon size={18} />, onClick: () => void signOut() }]),
+          ]}
+        />
       </header>
 
       {data.pending.length > 0 && (
@@ -116,7 +118,15 @@ export function Sidebar() {
             </li>
           );
         })}
-        {lists.length === 0 && store.loaded && <li className="empty-hint">Skapa din första lista – t.ex. en inköpslista.</li>}
+        {lists.length === 0 && store.loaded && (
+          <li className="empty-hint">
+            Skapa din första lista – eller{' '}
+            <a href="/import" onClick={(e) => (e.preventDefault(), navigate('/import'))}>
+              importera från Microsoft To Do
+            </a>
+            .
+          </li>
+        )}
       </ul>
 
       <footer className="sidebar-foot">
